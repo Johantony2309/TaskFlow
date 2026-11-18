@@ -8,8 +8,11 @@ import 'package:taskflow/features/tasks/presentation/task_detail_screen.dart';
 import 'package:taskflow/features/tasks/domain/task.dart';
 
 void main() {
-  final demoTasks = LocalTaskRepository().getTasks();
-  test('Las cinco tareas conservan ids, estados y usuario', () {
+  late List<Task> demoTasks;
+  setUp(() async {
+    demoTasks = await LocalTaskRepository().getTasks();
+  });
+  test('Las cinco tareas conservan ids, estados y usuario', () async {
     expect(demoTasks.length, 5);
     expect(demoTasks.map((task) => task.id).toSet().length, 5);
     expect(demoTasks.every((task) => task.userId == 1), isTrue);
@@ -31,37 +34,45 @@ void main() {
     expect(task.userId, 1);
   });
 
-  test('El cambio es inmutable, se notifica y se pierde al reiniciar', () {
-    final repository = LocalTaskRepository();
-    final vm = TasksViewModel(repository);
-    final original = vm.tasks.first;
-    var notifications = 0;
-    vm.addListener(() => notifications++);
-    vm.toggleCompleted(original.id);
-    final updated = vm.findTask(original.id)!;
-    expect(updated.isCompleted, !original.isCompleted);
-    expect(repository.getTasks().first.isCompleted, updated.isCompleted);
-    expect(original.isCompleted, false);
-    expect(updated.id, original.id);
-    expect(updated.title, original.title);
-    expect(updated.description, original.description);
-    expect(updated.priority, original.priority);
-    expect(updated.userId, original.userId);
-    expect(notifications, 1);
-    vm.toggleCompleted(999);
-    expect(notifications, 1);
-    expect(vm.findTask(null), isNull);
-    expect(() => vm.tasks.clear(), throwsUnsupportedError);
-    expect(
-      TasksViewModel(LocalTaskRepository()).tasks.first.isCompleted,
-      original.isCompleted,
-    );
-    vm.dispose();
-  });
+  test(
+    'El cambio es inmutable, se notifica y se pierde al reiniciar',
+    () async {
+      final repository = LocalTaskRepository();
+      final vm = TasksViewModel(repository);
+      await vm.loadTasks();
+      final original = vm.tasks.first;
+      var notifications = 0;
+      vm.addListener(() => notifications++);
+      vm.toggleCompleted(original.id);
+      final updated = vm.findTask(original.id)!;
+      expect(updated.isCompleted, !original.isCompleted);
+      expect(
+        (await repository.getTasks()).first.isCompleted,
+        updated.isCompleted,
+      );
+      expect(original.isCompleted, false);
+      expect(updated.id, original.id);
+      expect(updated.title, original.title);
+      expect(updated.description, original.description);
+      expect(updated.priority, original.priority);
+      expect(updated.userId, original.userId);
+      expect(notifications, 1);
+      vm.toggleCompleted(999);
+      expect(notifications, 1);
+      expect(vm.findTask(null), isNull);
+      expect(() => vm.tasks.clear(), throwsUnsupportedError);
+      final restarted = TasksViewModel(LocalTaskRepository());
+      await restarted.loadTasks();
+      expect(restarted.tasks.first.isCompleted, original.isCompleted);
+      restarted.dispose();
+      vm.dispose();
+    },
+  );
   testWidgets('Cada tarjeta abre su detalle y permite regresar', (
     tester,
   ) async {
     final viewModel = TasksViewModel(LocalTaskRepository());
+    await viewModel.loadTasks();
     appRouter.go('/');
     await tester.pumpWidget(
       ChangeNotifierProvider<TasksViewModel>(

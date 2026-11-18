@@ -109,3 +109,53 @@ flutter test
 ```
 La prueba verifica las cinco rutas de detalle, el retorno, ids únicos, estados,
 usuario de prueba, conversión JSON y rutas inválidas.
+
+## API de tareas — sesión 7
+
+TaskFlow consulta JSONPlaceholder, una API REST pública con datos de prueba:
+<https://jsonplaceholder.typicode.com/todos?userId=1>.
+El método es GET y el filtro activo `userId=1` limita las tareas al usuario 1.
+La respuesta HTTP 200 contiene una lista de objetos con `userId`, `id`, `title`
+y `completed`; este último se convierte en `Task.isCompleted`.
+
+```json
+{
+  "userId": 1,
+  "id": 1,
+  "title": "delectus aut autem",
+  "completed": false
+}
+```
+
+La API no proporciona descripción ni prioridad. El modelo añade los valores
+explícitos de ejemplo `Sin descripción (API)` y `Sin prioridad (API)`.
+`fromJson` también conserva la compatibilidad con los seis campos locales:
+si existe `isCompleted`, se usa antes que `completed`.
+
+`TaskApiService` conoce la URL HTTPS, el filtro, Dio y los tiempos de espera;
+Dio decodifica JSON y `Task.fromJson` convierte cada mapa a un modelo tipado.
+`RemoteTaskRepository` obtiene las tareas del Service y conserva una copia en
+memoria. `TasksViewModel.loadTasks` espera el Future, gestiona la señal básica de
+carga o error y llama a `notifyListeners`; Provider reconstruye lista y detalle.
+Las vistas no conocen la URL ni realizan peticiones HTTP.
+
+Marcar una tarea modifica únicamente la copia en memoria, sin POST ni PATCH.
+`toggleCompleted` guarda y actualiza el estado visible sin repetir GET.
+Al reiniciar o volver a cargar desde la API se recupera el estado remoto.
+Las cinco tareas personalizadas siguen intactas en `LocalTaskRepository`, cuyo
+`getTasks` ahora devuelve `Future<List<Task>>`. La fuente activa al finalizar es
+`RemoteTaskRepository(TaskApiService())`; no hay persistencia ni CRUD remoto.
+
+El usuario elegido para esta entrega es 1. Se comprobó temporalmente userId=2 con HTTP 200 y 20 tareas
+(primera tarea id 21); se restauró userId=1 antes de publicar.
+La configuración de la sesión 7 sustituye la fuente local activa descrita en
+las sesiones anteriores. Para ejecutar y comprobar:
+
+```sh
+flutter pub get
+flutter run
+dart format lib
+flutter analyze
+flutter test
+flutter build web --no-tree-shake-icons --no-wasm-dry-run
+```

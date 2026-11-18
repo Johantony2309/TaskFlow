@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'task.dart';
+
 void main() {
   runApp(const TaskFlowApp());
 }
@@ -22,22 +24,6 @@ class TaskFlowApp extends StatelessWidget {
   }
 }
 
-class Task {
-  const Task({
-    required this.id,
-    required this.title,
-    required this.description,
-    required this.priority,
-    required this.isCompleted,
-  });
-
-  final int id;
-  final String title;
-  final String description;
-  final String priority;
-  final bool isCompleted;
-}
-
 const demoTasks = [
   Task(
     id: 1,
@@ -45,6 +31,7 @@ const demoTasks = [
     description: 'Ordenar en TaskFlow las entregas de Aplicaciones Móviles',
     priority: 'Alta',
     isCompleted: false,
+    userId: 1,
   ),
   Task(
     id: 2,
@@ -52,6 +39,7 @@ const demoTasks = [
     description: 'Comprobar títulos y prioridades en una pantalla pequeña',
     priority: 'Media',
     isCompleted: false,
+    userId: 1,
   ),
   Task(
     id: 3,
@@ -59,6 +47,7 @@ const demoTasks = [
     description: 'Agregar y completar pendientes sin superar la meta de cinco',
     priority: 'Baja',
     isCompleted: true,
+    userId: 1,
   ),
   Task(
     id: 4,
@@ -67,6 +56,7 @@ const demoTasks = [
         'Comprobar los estados y el desplazamiento de las cinco tareas',
     priority: 'Alta',
     isCompleted: false,
+    userId: 1,
   ),
   Task(
     id: 5,
@@ -74,8 +64,16 @@ const demoTasks = [
     description: 'Guardar capturas y publicar el avance de la sesión tres',
     priority: 'Media',
     isCompleted: false,
+    userId: 1,
   ),
 ];
+
+Task? findTask(int? id) {
+  for (final task in demoTasks) {
+    if (task.id == id) return task;
+  }
+  return null;
+}
 
 final appRouter = GoRouter(
   routes: [
@@ -83,8 +81,8 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/task/:id',
       builder: (context, state) {
-        final taskId = int.parse(state.pathParameters['id']!);
-        return TaskDetailScreen(taskId: taskId);
+        final id = int.tryParse(state.pathParameters['id'] ?? '');
+        return TaskDetailScreen(task: findTask(id));
       },
     ),
   ],
@@ -136,36 +134,47 @@ class TaskListScreen extends StatelessWidget {
 }
 
 class TaskDetailScreen extends StatelessWidget {
-  const TaskDetailScreen({super.key, required this.taskId});
+  const TaskDetailScreen({super.key, required this.task});
 
-  final int taskId;
+  final Task? task;
 
   @override
   Widget build(BuildContext context) {
-    final task = demoTasks.firstWhere((item) => item.id == taskId);
+    final task = this.task;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Detalle de tarea')),
       body: Padding(
         padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(task.title, style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 16),
-            Text(task.description),
-            const SizedBox(height: 16),
-            Chip(label: Text('Prioridad: ${task.priority}')),
-            const SizedBox(height: 12),
-            Text(task.isCompleted ? 'Estado: completada' : 'Estado: pendiente'),
-            const Spacer(),
-            FilledButton.tonalIcon(
-              onPressed: () => context.pop(),
-              icon: const Icon(Icons.arrow_back),
-              label: const Text('Volver al listado'),
-            ),
-          ],
-        ),
+        child: task == null
+            ? const Text('No se encontró esta tarea.')
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    task.title,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(task.description),
+                  const SizedBox(height: 16),
+                  Chip(label: Text('Prioridad: ${task.priority}')),
+                  const SizedBox(height: 12),
+                  Text(
+                    task.isCompleted
+                        ? 'Estado: completada'
+                        : 'Estado: pendiente',
+                  ),
+                  Text('ID: ${task.id}'),
+                  Text('Usuario: ${task.userId}'),
+                  const Spacer(),
+                  FilledButton.tonalIcon(
+                    onPressed: () => context.pop(),
+                    icon: const Icon(Icons.arrow_back),
+                    label: const Text('Volver al listado'),
+                  ),
+                ],
+              ),
       ),
     );
   }

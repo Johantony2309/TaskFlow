@@ -34,4 +34,38 @@ class TaskApiService {
       return Task.fromJson(json);
     }).toList();
   }
+
+  Future<Task> createTask(Task task) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/todos',
+      data: task.toJson(),
+    );
+    debugPrint('POST /todos → HTTP ${response.statusCode}');
+    final json = response.data;
+    if (json == null) {
+      throw const FormatException('La respuesta no contiene un objeto.');
+    }
+    return Task.fromJson(json);
+  }
+
+  Future<Task> updateTask(Task task) async {
+    final response = await _dio.patch<Map<String, dynamic>>(
+      '/todos/${task.id}',
+      data: task.toJson(),
+    );
+    debugPrint('PATCH /todos/${task.id} → HTTP ${response.statusCode}');
+    final json = response.data;
+    if (json == null) {
+      throw const FormatException('La respuesta no contiene un objeto.');
+    }
+    return Task.fromJson(json);
+  }
+
+  Future<void> deleteTask(int id) async {
+    final response = await _dio.delete('/todos/$id');
+    debugPrint('DELETE /todos/$id → HTTP ${response.statusCode}');
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception('Error al eliminar la tarea');
+    }
+  }
 }

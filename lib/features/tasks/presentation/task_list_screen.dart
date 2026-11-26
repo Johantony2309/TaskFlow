@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import 'task_form_screen.dart';
 import 'tasks_view_model.dart';
 
 class TaskListScreen extends StatelessWidget {
@@ -36,12 +35,12 @@ class TaskListScreen extends StatelessWidget {
   }
 
   Future<void> _navigateToForm(BuildContext context) async {
-    final draft = await context.push<TaskDraft>('/new');
-    if (draft != null && context.mounted) {
+    final result = await context.push<bool>('/new');
+    if (result == true && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Borrador guardado: ${draft.title}'),
-          duration: const Duration(seconds: 2),
+        const SnackBar(
+          content: Text('Tarea creada'),
+          duration: Duration(seconds: 2),
         ),
       );
     }

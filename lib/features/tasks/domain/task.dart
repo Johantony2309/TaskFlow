@@ -15,10 +15,10 @@ class Task {
   final bool isCompleted;
   final int userId;
 
-  Task copyWith({bool? isCompleted}) {
+  Task copyWith({bool? isCompleted, String? title}) {
     return Task(
       id: id,
-      title: title,
+      title: title ?? this.title,
       description: description,
       priority: priority,
       isCompleted: isCompleted ?? this.isCompleted,
@@ -35,5 +35,9 @@ class Task {
       isCompleted: (json['isCompleted'] ?? json['completed']) as bool,
       userId: json['userId'] as int,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'title': title, 'completed': isCompleted, 'userId': userId};
   }
 }

@@ -54,4 +54,67 @@ class TasksViewModel extends ChangeNotifier {
     ];
     notifyListeners();
   }
+
+  Future<bool> createTask(Task task) async {
+    isLoading = true;
+    errorMessage = null;
+    notifyListeners();
+
+    try {
+      final created = await _repository.createTask(task);
+      _tasks = [..._tasks, created];
+      isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      errorMessage = 'No se pudo crear la tarea.';
+      isLoading = false;
+      notifyListeners();
+      debugPrint('Error al crear tarea: $error');
+      return false;
+    }
+  }
+
+  Future<bool> updateTask(Task task) async {
+    isLoading = true;
+    errorMessage = null;
+    notifyListeners();
+
+    try {
+      final updated = await _repository.updateTask(task);
+      _tasks = [
+        for (final t in _tasks)
+          if (t.id == task.id) updated else t,
+      ];
+      isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      errorMessage = 'No se pudo actualizar la tarea.';
+      isLoading = false;
+      notifyListeners();
+      debugPrint('Error al actualizar tarea: $error');
+      return false;
+    }
+  }
+
+  Future<bool> deleteTask(int id) async {
+    isLoading = true;
+    errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _repository.deleteTask(id);
+      _tasks = _tasks.where((t) => t.id != id).toList();
+      isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (error) {
+      errorMessage = 'No se pudo eliminar la tarea.';
+      isLoading = false;
+      notifyListeners();
+      debugPrint('Error al eliminar tarea: $error');
+      return false;
+    }
+  }
 }

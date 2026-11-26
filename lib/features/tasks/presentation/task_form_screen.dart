@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+
+import '../domain/task.dart';
+import 'tasks_view_model.dart';
 
 class TaskDraft {
   final String title;
@@ -24,9 +27,8 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
-  String _selectedPriority = 'Media';
-
-  static const _priorities = ['Baja', 'Media', 'Alta'];
+  String _priority = 'Media';
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -35,28 +37,54 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
     super.dispose();
   }
 
-  void _save() {
-    if (_formKey.currentState!.validate()) {
-      final draft = TaskDraft(
-        title: _titleController.text.trim(),
-        description: _descriptionController.text.trim(),
-        priority: _selectedPriority,
-      );
-      context.pop(draft);
-    }
-  }
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
 
-  void _cancel() {
-    context.pop();
+    setState(() => _isSubmitting = true);
+
+    final draft = TaskDraft(
+      title: _titleController.text.trim(),
+      description: _descriptionController.text.trim(),
+      priority: _priority,
+    );
+
+    final viewModel = context.read<TasksViewModel>();
+    final task = Task(
+      id: 0,
+      title: draft.title,
+      description: draft.description,
+      priority: draft.priority,
+      isCompleted: false,
+      userId: 1,
+    );
+
+    final success = await viewModel.createTask(task);
+
+    if (mounted) {
+      setState(() => _isSubmitting = false);
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tarea creada'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        Navigator.pop(context, true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se pudo crear la tarea'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Nueva tarea'),
-        leading: IconButton(icon: const Icon(Icons.close), onPressed: _cancel),
-      ),
+      appBar: AppBar(title: const Text('Nueva tarea')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -65,18 +93,10 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
             children: [
               TextFormField(
                 controller: _titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Título *',
-                  hintText: 'Título de la tarea',
-                  border: OutlineInputBorder(),
-                ),
+                decoration: const InputDecoration(labelText: 'Título'),
                 validator: (value) {
-                  final text = value?.trim() ?? '';
-                  if (text.isEmpty) {
+                  if (value == null || value.trim().isEmpty) {
                     return 'El título es obligatorio';
-                  }
-                  if (text.length < 3) {
-                    return 'El título debe tener al menos 3 caracteres';
                   }
                   return null;
                 },
@@ -84,59 +104,30 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Descripción *',
-                  hintText: 'Descripción de la tarea',
-                  border: OutlineInputBorder(),
-                ),
+                decoration: const InputDecoration(labelText: 'Descripción'),
                 maxLines: 3,
-                validator: (value) {
-                  final text = value?.trim() ?? '';
-                  if (text.isEmpty) {
-                    return 'La descripción es obligatoria';
-                  }
-                  return null;
-                },
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                initialValue: _selectedPriority,
-                decoration: const InputDecoration(
-                  labelText: 'Prioridad *',
-                  border: OutlineInputBorder(),
-                ),
-                items: _priorities
-                    .map((p) => DropdownMenuItem(value: p, child: Text(p)))
-                    .toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() => _selectedPriority = value);
-                  }
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Seleccione una prioridad';
-                  }
-                  return null;
-                },
+                initialValue: _priority,
+                decoration: const InputDecoration(labelText: 'Prioridad'),
+                items: const [
+                  DropdownMenuItem(value: 'Alta', child: Text('Alta')),
+                  DropdownMenuItem(value: 'Media', child: Text('Media')),
+                  DropdownMenuItem(value: 'Baja', child: Text('Baja')),
+                ],
+                onChanged: (value) => setState(() => _priority = value!),
               ),
               const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _cancel,
-                      child: const Text('Cancelar'),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: _save,
-                      child: const Text('Guardar'),
-                    ),
-                  ),
-                ],
+              FilledButton(
+                onPressed: _isSubmitting ? null : _submit,
+                child: _isSubmitting
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Guardar'),
               ),
             ],
           ),

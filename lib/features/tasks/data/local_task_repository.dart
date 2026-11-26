@@ -56,4 +56,34 @@ class LocalTaskRepository implements TaskRepository {
     if (index == -1) return;
     _tasks[index] = task;
   }
+
+  @override
+  Future<Task> createTask(Task task) async {
+    final newId = _tasks.isEmpty
+        ? 1
+        : _tasks.map((t) => t.id).reduce((a, b) => a > b ? a : b) + 1;
+    final newTask = Task(
+      id: newId,
+      title: task.title,
+      description: task.description,
+      priority: task.priority,
+      isCompleted: task.isCompleted,
+      userId: task.userId,
+    );
+    _tasks.add(newTask);
+    return newTask;
+  }
+
+  @override
+  Future<Task> updateTask(Task task) async {
+    final index = _tasks.indexWhere((item) => item.id == task.id);
+    if (index == -1) throw Exception('Tarea no encontrada');
+    _tasks[index] = task;
+    return task;
+  }
+
+  @override
+  Future<void> deleteTask(int id) async {
+    _tasks.removeWhere((item) => item.id == id);
+  }
 }
